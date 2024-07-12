@@ -365,9 +365,14 @@ def main():
 
     # dataloader / model
     transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor()
+        transforms.Resize((256, 256)),  # まずは大きめにリサイズ
+        transforms.CenterCrop(224),     # センタークロップで224x224に
+        transforms.RandomHorizontalFlip(p=0.5),  # ランダムな水平フリップ
+        transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),  # 色彩調整
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # ImageNet統計による正規化
     ])
+
     train_dataset = VQADataset(df_path="./data/train.json", image_dir="./data/train", transform=transform)
     test_dataset = VQADataset(df_path="./data/valid.json", image_dir="./data/valid", transform=transform, answer=False)
     test_dataset.update_dict(train_dataset)
@@ -378,7 +383,7 @@ def main():
     model = VQAModel(vocab_size=len(train_dataset.question2idx)+1, n_answer=len(train_dataset.answer2idx)).to(device)
 
     # optimizer / criterion
-    num_epoch = 1
+    num_epoch = 20
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
 
